@@ -49,9 +49,6 @@ class Query:
         return query
 
     def _do_not_add(self, value):
-        """To maintain NULL values in SQL
-        
-        NULLs if the value is None, empty string or is `Not Applicable`"""
         if value == None:
             return True
         if value != None:
@@ -62,9 +59,6 @@ class Query:
                 return True
 
     def _replace_single_quote(self, string):
-        """To escape single quotes in SQL
-        
-        Replaces single quotes with double single quotes"""
         if type(string) != str:
             return None
         return string.replace("'", "''")

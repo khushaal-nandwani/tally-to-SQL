@@ -13,6 +13,7 @@ def connect_to_database():
     cursor = connection.cursor()
     return [connection, cursor]
 
+
 def get_parent_tag(elm):
     elm_tag = elm.tag
 

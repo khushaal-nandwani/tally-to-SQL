@@ -1,39 +1,22 @@
 import xml.etree.ElementTree as ET
 from constants import *
-import sqlite3
-import pyodbc
 from utils import *
-from format import *
+from format_ import *
+from input_ import *
+from database_ import *
+from Query import Query
 
 file_working_on = ""
-EXCLUDE_TABLES = []
-SQL_KEYWORDS = ["GROUP", "USER", "ORDER", "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP", "TABLE", "VIEW", "DATABASE", "PROCEDURE", "FUNCTION", "TRIGGER", "INDEX", "CONSTRAINT", "PRIMARY", "FOREIGN", "KEY", "CHECK", "UNIQUE", "DEFAULT", "NULL", "NOT", "AND", "OR", "IN", "BETWEEN", "LIKE", "IS", "EXISTS", "ALL", "ANY", "SOME", "CASE", "WHEN", "THEN", "ELSE", "END", "AS", "BEGIN", "COMMIT", "ROLLBACK", "TRAN", "DECLARE", "SET", "IF", "ELSE", "WHILE", "GOTO", "RETURN", "BREAK", "CONTINUE", "PRINT", "EXEC", "WITH", "GRANT", "REVOKE", "DENY", "AUTHORIZATION", "ON", "TO", "GO"]
-
-server = 'CAPSTONE\RADIX' 
-database = 'master'  # Connect to the master database to create a new database
-username = 'sa' 
-password = 'dotnet@123'
-
-connection = pyodbc.connect('DRIVER={SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password, autocommit=True)
-cursor = connection.cursor()
-
-cursor.execute("CREATE DATABASE " + DATABASE_NAME)
-connection.commit()
-
-database = DATABASE_NAME
-connection = pyodbc.connect('DRIVER={SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
-cursor = connection.cursor()
-
 insertion_count = 0
 current_guid = ""
 tables_directory = {
     # tableName: { fieldName1: type, fieldName2: type, ... }
 }
-
-# set of tupes
-referenced_out = set()
-
+reference_directory = set()
 queries = []
+
+connection = get_connection()
+cursor = connection.cursor()
 
 
 def create_table(table_name, fields):
@@ -49,20 +32,16 @@ def create_table(table_name, fields):
 
 def add_table_in_dir(table_tag):
     global tables_directory
-    global reference_directory
     tableName = get_parent_tag(table_tag)
 
-    if tableName in EXCLUDE_TABLES:
-        return
-    
     if tableName not in tables_directory:
         tables_directory[tableName] = {}
-    
+
     if tableName.endswith("LIST"):
         tables_directory[tableName]["GUID"] = type("GUID")
 
     for fieldA in table_tag.attrib:
-        fieldAName = fieldA + '_ATTRIB'
+        fieldAName = fieldA + "_ATTRIB"
         if fieldAName not in tables_directory[tableName]:
             tables_directory[tableName][fieldAName] = type(table_tag.attrib[fieldA])
 
@@ -70,9 +49,12 @@ def add_table_in_dir(table_tag):
         fieldName = field.tag.strip()
         fieldValue = field.text
         if fieldName.endswith(".LIST"):
-            referenced_out.add((tableName, fieldName))
+            reference_directory.add((tableName, fieldName))
             add_table_in_dir(field)
-        if not fieldName.endswith(".LIST") and fieldName not in tables_directory[tableName]:
+        if (
+            not fieldName.endswith(".LIST")
+            and fieldName not in tables_directory[tableName]
+        ):
             tables_directory[tableName][fieldName] = type(fieldValue)
 
 
@@ -82,7 +64,7 @@ def create_tables(root):
         if tally_message.tag == "TALLYMESSAGE":
             for table_tag in tally_message:
                 add_table_in_dir(table_tag)
-    
+
     for table_tag in tables_directory:
         fields = tables_directory[table_tag]
         if len(fields) == 0:
@@ -116,7 +98,7 @@ def process_child(child):
         q.add_field("GUID", current_guid)
 
     for fieldA in child.attrib:
-        fieldName = fieldA + '_ATTRIB'
+        fieldName = fieldA + "_ATTRIB"
         fieldValue = child.attrib[fieldA]
         if fieldA == "REMOTEID":
             current_guid = fieldValue
@@ -125,10 +107,10 @@ def process_child(child):
     for field in child:
         fieldName = field.tag
         fieldValue = field.text
-                
+
         if fieldName == "GUID":
             current_guid = fieldValue
-                    
+
         if fieldName.endswith("LIST"):
             insert_in_tables(field, False)
 
@@ -137,7 +119,6 @@ def process_child(child):
 
         else:
             q.add_field(fieldName, fieldValue)
-                
 
     query = q.get_query(file_working_on)
     if query:
@@ -166,7 +147,7 @@ def print_xml_structure(element, level=0):
 def create_and_insert_references():
     # create table with twofields "TABLE_"
     create_table("TABLE_REFERENCES", {"TABLE_NAME": str, "FIELD_NAME": str})
-    for table, field in referenced_out:
+    for table, field in reference_directory:
         q = Query("TABLE_REFERENCES")
         q.add_field("TABLE_NAME", table)
         if field.endswith(".LIST"):
@@ -177,28 +158,24 @@ def create_and_insert_references():
 
 
 if __name__ == "__main__":
-    input_path_1 = "..\data\Master4.xml"
-    input_path_2 = "..\data\Transactions4.xml"
-    XSLT_PATH = "..\data\guid_add.xsl"
-    output_path_1 = "M.xml"
-    output_path_2 = "T.xml"
+    ask_for_config()
 
-    # remove_weird_characters(input_path_1)
-    # remove_weird_characters(input_path_2)
-    apply_xslt(input_path_1, XSLT_PATH, output_path_1)
-    apply_xslt(input_path_2, XSLT_PATH, output_path_2)
+    # assign GUID to each TALLYMESSAGE tag
+    apply_xslt(input_path_m, GUID_ADD_XSLT, MASTER_XML_OUTPUT)
+    apply_xslt(input_path_t, GUID_ADD_XSLT, TRANSC_XML_OUTPUT)
 
-    files_to_convert = {
-        output_path_1: 'MAST',
-        output_path_2: 'TRAN'
-    }
+    files = [MASTER_XML_OUTPUT, TRANSC_XML_OUTPUT]
+    prefix = ["MAST", "TRAN"]
 
-    for file_, prefix_ in files_to_convert.items():
+    for i in range(2):
+        file_ = files[i]
+        prefix_ = prefix[i]
+
         tables_directory = {}
-        referenced_out = set()
+        reference_directory = set()
+
         file_working_on = prefix_
         root = get_tree(file_)
-
 
         print("Creating Tables....")
         create_tables(root)
@@ -208,6 +185,4 @@ if __name__ == "__main__":
         create_and_insert_references()
         print("Created References")
 
-    
     connection.close()
-
