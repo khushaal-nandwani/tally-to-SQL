@@ -1,5 +1,5 @@
-from constants import *
-from main import get_tree
+from src.constants import *
+from src.main import get_tree
 
 inner_tags = {}
 
