@@ -1,21 +1,6 @@
 import xml.etree.ElementTree as ET
 import pyodbc
 
-server = 'CAPSTONE\RADIX' 
-database = 'master'  # Connect to the master database to create a new database
-username = 'sa' 
-password = 'dotnet@123'
-DATABASE_NAME = "TallyData"
-
-python_to_sql_types = {
-    str: "NVARCHAR(MAX)",
-    type(None): "NVARCHAR(MAX)",
-    int: "INTEGER",
-    float: "REAL",
-    bool: "BOOLEAN",
-    bytes: "BLOB"
-}
-
 
 def get_tree(xml):
     tree = ET.parse(xml)
