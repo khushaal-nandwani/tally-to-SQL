@@ -1,3 +1,5 @@
+from database_ import set_target_database
+
 input_path_m = "..\data\Master4.xml"
 input_path_t = "..\data\Transactions4.xml"
 
@@ -19,3 +21,7 @@ def _ask_for_inputs():
 
     input_path_m = input("Enter path to Master's XML file: ")
     input_path_t = input("Enter path to Transactions' XML file: ")
+
+def _ask_for_target_database():
+    db_name = input("Name the database you want to create for your Tally Data: ")
+    set_target_database(db_name)

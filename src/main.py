@@ -3,7 +3,7 @@ from constants import *
 from utils import *
 from format_ import *
 from input_ import *
-from database_ import *
+from database_ import create_database, get_connection
 from Query import Query
 
 file_working_on = ""

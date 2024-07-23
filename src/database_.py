@@ -50,4 +50,8 @@ def get_connection():
         + password,
         autocommit=True,
     )
+
+def set_target_database(db_name):
+    global target_database
+    target_database = db_name
     
