@@ -9,11 +9,13 @@ def apply_xslt(xml_path, xslt_path, output_path):
 
     transformed_tree.write(output_path, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
+REMOVE_CHARS = ["", "&#4; "]
 
 def remove_weird_characters(file_path):
     with open(file_path, 'r') as file:
-        filedata = file.read()
-        filedata = filedata.replace("", "")
+        filedata = file.read().splitlines()
+        for char in REMOVE_CHARS:
+            filedata = filedata.replace(char, "")
     with open(file_path, 'w') as file:
         file.write(filedata)
 

@@ -7,7 +7,7 @@ username = "sa"
 password = "dotnet@123"
 
 # The name of the database you want your tally data to be in
-target_database = "TallyData"
+target_database = "TallyData2"
 
 python_to_sql_types = {
     str: "NVARCHAR(MAX)",

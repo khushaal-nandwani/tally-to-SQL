@@ -3,7 +3,7 @@ from constants import *
 from utils import *
 from format_ import *
 from input_ import *
-from database_ import create_database, get_connection
+from database_ import create_database, get_connection, python_to_sql_types
 from Query import Query
 
 file_working_on = ""
@@ -15,19 +15,43 @@ tables_directory = {
 reference_directory = set()
 queries = []
 
+create_database()
 connection = get_connection()
 cursor = connection.cursor()
 
 
-def create_table(table_name, fields):
+def create_table(table_name, fields, prefix):
     if table_name == "GROUP":
         table_name = "TBLGROUP"
-    query = f"CREATE TABLE {table_name} ("
+    if table_name.endswith("LIST"):
+        table_name = table_name[:-5] + "LIST"
+    query = f"CREATE TABLE {prefix + table_name} ("
     for field, t in fields.items():
         query += f"{field} {python_to_sql_types[t]}, "
     query = query[:-2] + ")"
-    cursor.execute(query)
-    connection.commit()
+    try:
+        cursor.execute(query)
+        connection.commit()
+    except Exception as e:
+        print(query)
+        connection.rollback()
+        print("Error creating table:", e)
+    
+
+def create_tables(root, prefix):
+    count = 0
+    for tally_message in root[BODY][IMPORTDATA][REQUESTDATA]:
+        if tally_message.tag == "TALLYMESSAGE":
+            for table_tag in tally_message:
+                add_table_in_dir(table_tag)
+
+    for table_tag in tables_directory:
+        fields = tables_directory[table_tag]
+        if len(fields) == 0:
+            continue
+        create_table(table_tag, fields, prefix)
+        count += 1
+    print("Created ", count, " Tables")
 
 
 def add_table_in_dir(table_tag):
@@ -56,22 +80,6 @@ def add_table_in_dir(table_tag):
             and fieldName not in tables_directory[tableName]
         ):
             tables_directory[tableName][fieldName] = type(fieldValue)
-
-
-def create_tables(root):
-    count = 0
-    for tally_message in root[BODY][IMPORTDATA][REQUESTDATA]:
-        if tally_message.tag == "TALLYMESSAGE":
-            for table_tag in tally_message:
-                add_table_in_dir(table_tag)
-
-    for table_tag in tables_directory:
-        fields = tables_directory[table_tag]
-        if len(fields) == 0:
-            continue
-        create_table(table_tag, fields)
-        count += 1
-    print("Created ", count, " Tables")
 
 
 def insert_in_tables(root, default=True):
@@ -144,9 +152,9 @@ def print_xml_structure(element, level=0):
     print(f"{indent}</{element.tag}>")
 
 
-def create_and_insert_references():
+def create_and_insert_references(prefix=""):
     # create table with twofields "TABLE_"
-    create_table("TABLE_REFERENCES", {"TABLE_NAME": str, "FIELD_NAME": str})
+    create_table("TABLE_REFERENCES", {"TABLE_NAME": str, "FIELD_NAME": str}, prefix)
     for table, field in reference_directory:
         q = Query("TABLE_REFERENCES")
         q.add_field("TABLE_NAME", table)
@@ -164,6 +172,13 @@ if __name__ == "__main__":
     apply_xslt(input_path_m, GUID_ADD_XSLT, MASTER_XML_OUTPUT)
     apply_xslt(input_path_t, GUID_ADD_XSLT, TRANSC_XML_OUTPUT)
 
+    # do you want to remove weird characters?
+    clean_files = input("Do you want to remove weird characters? (y/n) ")
+    if clean_files.lower() == "y":
+        remove_weird_characters(MASTER_XML_OUTPUT)
+        remove_weird_characters(TRANSC_XML_OUTPUT)
+
+
     files = [MASTER_XML_OUTPUT, TRANSC_XML_OUTPUT]
     prefix = ["MAST", "TRAN"]
 
@@ -178,11 +193,11 @@ if __name__ == "__main__":
         root = get_tree(file_)
 
         print("Creating Tables....")
-        create_tables(root)
+        create_tables(root, prefix_)
         print("Inserting Values....")
         insert_in_tables(root)
         print("Inserted ", insertion_count, " queries")
-        create_and_insert_references()
+        create_and_insert_references(prefix_)
         print("Created References")
 
     connection.close()
