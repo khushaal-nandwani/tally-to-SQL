@@ -1,6 +1,12 @@
+import os
 from lxml import etree
 
 def apply_xslt(xml_path, xslt_path, output_path):
+    try:
+        os.remove(output_path)
+    except FileNotFoundError:
+        pass
+
     xml_tree = etree.parse(xml_path)
     xslt_tree = etree.parse(xslt_path)
 

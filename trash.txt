@@ -1,9 +1,0 @@
-def filter_tag(tag, filter, attribute=None):
-    for child in tag:
-        if child.tag == filter:
-            if attribute is not None:
-                if child.attrib == attribute:
-                    return child
-            else:
-                return child
-    return None
