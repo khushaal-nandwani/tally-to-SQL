@@ -47,7 +47,7 @@ Basically, everything useful comes under the TALLYMESSAGE tag. This includes, bu
 
 This tool will create a table for each tag under the TALLYMESSAGE tag. 
 
-If there is another nested tag under that tag, for example `ANOTHER.LIST` under the above example, it will create a table for that as well with the name `MASTANOTHERLIST`, with the GUID as the foreign key. The prefix `MAST` is added to the table name to diffrentiate master and transaction tables. You can change this prefix under (main.py)[./src/main.py]. 
+If there is another nested tag under that tag, for example `ANOTHER.LIST` under the above example, it will create a table for that as well with the name `MASTANOTHERLIST`, with the GUID as the foreign key. The prefix `MAST` is added to the table name to diffrentiate master and transaction tables. You can change this prefix under [main.py](./src/main.py). 
 
 I have chosen GUID as the foreign key because it is unique for each record and is present in all the tags.
 
