@@ -3,7 +3,7 @@ from create_tables_ import create_ref_table, create_tables
 from insert_values_ import insert_in_ref_table, insert_in_tables
 from utils import *
 from format_ import *
-from input_ import *
+from target_files import *
 from database_ import create_database, drop_database
 
 file_working_on = ""
@@ -43,9 +43,12 @@ if __name__ == "__main__":
         create_tables(
             root, prefix_, connection, cursor, reference_directory, tables_directory
         )
-        insert_in_tables(root, file_working_on, cursor, connection)
+        print("Inserting Values now ... ")
+        count = insert_in_tables(root, file_working_on, cursor, connection, True)
+        print("Inserted ", count, " queries")
+
         create_ref_table(prefix_, connection, cursor)
         insert_in_ref_table(reference_directory, file_working_on, cursor, connection)
-        print("Tally to SQL successful. Thank you:)")
+    print("\nTally to SQL successful. Thank you:)\nFor queries contact @github.com/khushaal-nandwani")
 
     connection.close()

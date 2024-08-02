@@ -7,7 +7,6 @@ current_guid = ""
 
 
 def insert_in_tables(root, file_working_on, cursor, connection, default=True):
-    print("Inserting Values now ... ")
     global current_guid
     if default:
         for tally_message in root[BODY][IMPORTDATA][REQUESTDATA]:
@@ -18,8 +17,9 @@ def insert_in_tables(root, file_working_on, cursor, connection, default=True):
                     process_child(child, file_working_on, cursor, connection)
     else:
         process_child(root, file_working_on, cursor, connection)
+    
+    return insertion_count
 
-    print("Inserted ", insertion_count, " queries")
 
 
 def process_child(child, file_working_on, cursor, connection):
